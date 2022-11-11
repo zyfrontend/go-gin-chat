@@ -1,0 +1,31 @@
+info:
+  contact: {}
+paths:
+  /user/create:
+    post:
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      tags:
+      - 用户列表
+  /user/delete:
+    post:
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      tags:
+      - 用户列表
+  /user/list:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      tags:
+      - 用户列表
+swagger: "2.0"
