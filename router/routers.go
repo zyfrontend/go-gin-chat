@@ -20,6 +20,7 @@ func Routers() *gin.Engine {
 			v2.GET("/list", server.GetUserList)
 			v2.POST("/create", server.CreateUser)
 			v2.POST("/delete", server.DeleteUser)
+			v2.POST("/update", server.UpdateUser)
 		}
 	}
 	return r

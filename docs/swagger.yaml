@@ -1,24 +1,48 @@
+basePath: /api
 info:
   contact: {}
+  description: 聊天系统 API文档
+  title: GO-Gin-Chat-API
+  version: 1.0 版本
 paths:
   /user/create:
     post:
+      parameters:
+      - description: 用户名
+        in: query
+        name: name
+        type: string
+      - description: 密码
+        in: query
+        name: password
+        type: string
+      - description: 验证密码
+        in: query
+        name: repassword
+        type: string
       responses:
         "200":
-          description: OK
+          description: code", "message"}
           schema:
             type: string
+      summary: 创建用户
       tags:
-      - 用户列表
+      - 用户模块
   /user/delete:
     post:
+      parameters:
+      - description: 用户id
+        in: query
+        name: id
+        type: string
       responses:
         "200":
           description: OK
           schema:
             type: string
+      summary: 删除用户
       tags:
-      - 用户列表
+      - 用户模块
   /user/list:
     get:
       responses:
@@ -26,6 +50,30 @@ paths:
           description: OK
           schema:
             type: string
+      summary: 用户列表
       tags:
-      - 用户列表
+      - 用户模块
+  /user/update:
+    post:
+      parameters:
+      - description: 用户id
+        in: formData
+        name: id
+        type: string
+      - description: 用户名
+        in: formData
+        name: name
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        type: string
+      responses:
+        "200":
+          description: code", "message"}
+          schema:
+            type: string
+      summary: 修改用户
+      tags:
+      - 用户模块
 swagger: "2.0"
