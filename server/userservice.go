@@ -1,13 +1,46 @@
 package server
 
 import (
+	"fmt"
+	"ginchat/common"
 	"ginchat/models"
+	"ginchat/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 // @BasePath /api
+
+// FindUserByNameAndPassword
+// @Summary 用户登录
+// @Tags 用户模块
+// @Param name query string false "用户名"
+// @Param password query string false "密码"
+// @Success 200 {string} data
+// @Router /login [post]
+func FindUserByNameAndPassword(c *gin.Context) {
+	data := models.UserBasic{}
+	name := c.Query("name")
+	password := c.Query("password")
+	// 查询用户
+	user := models.FindUserByName(name)
+	if user.Name == "" {
+		common.FailMsg("该用户不存在", c)
+		return
+	}
+	boolStatus := utils.ValidPassword(password, user.Salt, user.PassWord)
+	if !boolStatus {
+		common.FailMsg("密码不正确", c)
+		return
+	}
+	pwd := utils.MakePassword(password, user.Salt)
+	data = models.FindUserByNameAndPassword(name, pwd)
+	common.SuccessDataMsg(data, "登录成功", c)
+}
 
 // GetUserList
 // @Summary 用户列表
@@ -17,10 +50,7 @@ import (
 func GetUserList(c *gin.Context) {
 	data := make([]*models.UserBasic, 10)
 	data = models.GetUserList()
-	c.JSON(http.StatusOK, gin.H{
-		"message": "ok",
-		"data":    data,
-	})
+	common.SuccessDataMsg(data, "查询成功", c)
 }
 
 // CreateUser
@@ -38,24 +68,15 @@ func CreateUser(c *gin.Context) {
 	repassword := c.Query("repassword")
 
 	if name == "" {
-		c.JSON(405, gin.H{
-			"message": "用户名不能为空",
-		})
+		common.FailMsg("用户名不能为空", c)
 		return
 	} else if password == "" {
-		c.JSON(405, gin.H{
-			"message": "密码不能为空",
-		})
-		return
+		common.FailMsg("密码不能为空", c)
 	} else if repassword == "" {
-		c.JSON(405, gin.H{
-			"message": "验证密码不能为空",
-		})
+		common.FailMsg("验证密码不能为空", c)
 		return
 	} else if password != repassword {
-		c.JSON(405, gin.H{
-			"message": "两次密码不一致",
-		})
+		common.FailMsg("两次密码不一致", c)
 		return
 	}
 
@@ -63,18 +84,17 @@ func CreateUser(c *gin.Context) {
 	data := models.FindUserByName(name)
 	// 不等于空，表示存在用户
 	if data.Name != "" {
-		c.JSON(405, gin.H{
-			"message": "用户名已注册",
-		})
+		common.FailMsg("用户名已注册", c)
 		return
 	}
+	// 密码加密
+	salt := fmt.Sprintf("%06d", rand.Int31())
 
 	user.Name = name
-	user.PassWord = password
+	user.PassWord = utils.MakePassword(password, salt)
+	user.Salt = salt
 	models.CreateUser(user)
-	c.JSON(http.StatusOK, gin.H{
-		"message": "新增用户成功",
-	})
+	common.SuccessDataMsg(&user, "新增用户成功", c)
 }
 
 // DeleteUser
@@ -89,15 +109,11 @@ func DeleteUser(c *gin.Context) {
 	user.ID = uint(id)
 	data := models.FindUserByID(id)
 	if data.Name == "" {
-		c.JSON(405, gin.H{
-			"message": "找不到用户ID",
-		})
+		common.FailMsg("找不到用户ID", c)
 		return
 	}
 	models.DeleteUser(user)
-	c.JSON(http.StatusOK, gin.H{
-		"message": "删除用户成功",
-	})
+	common.SuccessMsg("删除用户成功", c)
 }
 
 // UpdateUser
@@ -113,34 +129,86 @@ func UpdateUser(c *gin.Context) {
 	id, _ := strconv.Atoi(c.PostForm("id"))
 	name := c.PostForm("name")
 	password := c.PostForm("password")
-	if string(id) == "" {
-		c.JSON(405, gin.H{
-			"message": "用户id不能为空",
-		})
+	if strconv.Itoa(id) == "" {
+		common.FailMsg("用户id不能为空", c)
 		return
 	} else if name == "" {
-		c.JSON(405, gin.H{
-			"message": "用户名不能为空",
-		})
+		common.FailMsg("用户名不能为空", c)
 		return
 	} else if password == "" {
-		c.JSON(405, gin.H{
-			"message": "密码不能为空",
-		})
+		common.FailMsg("密码不能为空", c)
 		return
 	}
+	// 查找用户
+	data := models.FindUserByID(id)
+	if data.Name == "" {
+		common.FailMsg("找不到用户ID", c)
+		return
+	}
+
 	user.ID = uint(id)
 	user.Name = name
 	user.PassWord = password
-	data := models.FindUserByID(id)
-	if data.Name == "" {
-		c.JSON(405, gin.H{
-			"message": "找不到用户ID",
-		})
+	models.UpdateUser(user)
+	common.SuccessMsg("修改用户成功", c)
+}
+
+// UserInfo
+// @Summary 用户信息
+// @Tags 用户模块
+// @Param id formData string false "用户id"
+// @Success 200 {string} json{"code", "message"}
+// @Router /user/info [get]
+func UserInfo(c *gin.Context) {
+	id, _ := strconv.Atoi(c.PostForm("id"))
+	if strconv.Itoa(id) == "" {
+		common.FailMsg("用户id不能为空", c)
 		return
 	}
-	models.UpdateUser(user)
-	c.JSON(http.StatusOK, gin.H{
-		"message": "修改用户成功",
-	})
+	// 查找用户
+	data := models.FindUserByID(id)
+	if data.Name == "" {
+		common.FailMsg("找不到用户ID", c)
+		return
+	}
+	common.SuccessDataMsg(&data, "查询成功", c)
+}
+
+// 处理跨域
+var upGrade = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func SendMsg(c *gin.Context) {
+	ws, err := upGrade.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer func(ws *websocket.Conn) {
+		err = ws.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(ws)
+
+	MsgHandler(ws, c)
+}
+
+func MsgHandler(ws *websocket.Conn, c *gin.Context) {
+	for {
+		msg, err := utils.Subscribe(c, utils.PublishKey)
+		if err != nil {
+			fmt.Println(err)
+		}
+		tm := time.Now().Format("2006-01-02 15:04:05")
+		m := fmt.Sprintf("[ws][%s]:%s", tm, msg)
+		err = ws.WriteMessage(1, []byte(m))
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
 }

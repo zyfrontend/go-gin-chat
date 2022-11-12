@@ -13,6 +13,8 @@ import (
 func main() {
 	utils.InitConfig()
 	utils.InitMysql()
+	utils.InitRedis()
+	//test.TestGorm()
 	r := router.Routers()
 	r.Run(":9797")
 }

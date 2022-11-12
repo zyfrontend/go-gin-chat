@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"ginchat/utils"
 	"gorm.io/gorm"
 	"time"
@@ -8,18 +9,19 @@ import (
 
 type UserBasic struct {
 	gorm.Model
-	Name          string    `json:"name"`
-	PassWord      string    `json:"password"`
-	Phone         string    `json:"phone"`
-	Email         string    `json:"email"`
-	Identity      string    `json:"identity"`
-	ClientIp      string    `json:"client-ip"`
-	ClientPort    string    `json:"client-port"`
-	LoginTime     time.Time `json:"login-time"`
-	HeartBeatTime time.Time `json:"heart-beat-time"`
-	LoginOutTime  time.Time `json:"login-out-time"`
-	IsLogout      bool      `json:"is-logout"`
-	DeviceInfo    string    `json:"device-info"`
+	Name          string
+	PassWord      string
+	Phone         string
+	Email         string
+	Identity      string
+	ClientIp      string
+	ClientPort    string
+	Salt          string
+	LoginTime     time.Time
+	HeartBeatTime time.Time
+	LoginOutTime  time.Time
+	IsLogout      bool
+	DeviceInfo    string
 }
 
 func (table *UserBasic) TableName() string {
@@ -33,6 +35,15 @@ func FindUserByID(id int) UserBasic {
 func FindUserByName(name string) UserBasic {
 	user := UserBasic{}
 	utils.DB.Where("name = ?", name).First(&user)
+	return user
+}
+func FindUserByNameAndPassword(name, password string) UserBasic {
+	user := UserBasic{}
+	utils.DB.Where("name = ? and pass_word = ?", name, password).First(&user)
+	// token 加密
+	str := fmt.Sprintf("%d", time.Now().Unix())
+	temp := utils.MD5Encode(str)
+	utils.DB.Model(&user).Where("id = ?", user.ID).Update("identity", temp)
 	return user
 }
 func FindUserByPhone(phone string) UserBasic {
