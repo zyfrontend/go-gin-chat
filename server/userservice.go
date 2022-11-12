@@ -113,7 +113,7 @@ func UpdateUser(c *gin.Context) {
 	id, _ := strconv.Atoi(c.PostForm("id"))
 	name := c.PostForm("name")
 	password := c.PostForm("password")
-	if id == nil {
+	if string(id) == "" {
 		c.JSON(405, gin.H{
 			"message": "用户id不能为空",
 		})
