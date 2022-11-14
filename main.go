@@ -2,6 +2,7 @@ package main
 
 import (
 	"ginchat/router"
+	"ginchat/sql"
 	"ginchat/utils"
 )
 
@@ -14,7 +15,7 @@ func main() {
 	utils.InitConfig()
 	utils.InitMysql()
 	utils.InitRedis()
-	//test.TestGorm()
+	sql.CreateTable()
 	r := router.Routers()
 	r.Run(":9797")
 }
