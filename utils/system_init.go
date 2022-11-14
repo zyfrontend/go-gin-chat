@@ -26,6 +26,17 @@ func InitConfig() {
 		fmt.Println(err)
 	}
 }
+
+func DNS() string {
+	dbName := viper.GetString("mysql.dbname")
+	userName := viper.GetString("mysql.username")
+	password := viper.GetString("mysql.password")
+	path := viper.GetString("mysql.path")
+	port := viper.GetString("mysql.port")
+	config := viper.GetString("mysql.config")
+	return userName + ":" + password + "@tcp(" + path + ":" + port + ")/" + dbName + "?" + config
+}
+
 func InitMysql() {
 	// 自定义日志模板 打印SQL语句
 	newLogger := logger.New(
@@ -36,7 +47,8 @@ func InitMysql() {
 			Colorful:      true,        // 彩色
 		},
 	)
-	db, err := gorm.Open(mysql.Open(viper.GetString("mysql.dns")), &gorm.Config{
+	//db, err := gorm.Open(mysql.Open(viper.GetString("mysql.dns")), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(DNS()), &gorm.Config{
 		Logger: newLogger,
 	})
 	if err != nil {
